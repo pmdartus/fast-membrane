@@ -156,7 +156,15 @@ export default class Membrane {
         });
     }
 
-    getProxy(obj: any): any {
-        return this.getProxyfiedValue(obj);
+    getProxy(target: any): any {
+        return this.getProxyfiedValue(target);
+    }
+
+    getReadOnlyProxy(target: any): any {
+        return this.getProxyfiedValue(target);
+    }
+
+    unwrapProxy(target: any): any {
+        return target;
     }
 }
