@@ -1,5 +1,6 @@
 process.env.NODE_ENV = 'production';
 
+const Benchmark = require('benchmark');
 const ObservableMembrane = require('observable-membrane');
 const FastMembrane = require('../dist/fast-observable-membrane');
 
@@ -65,7 +66,7 @@ const N = [
 
 let nextId = 1;
 
-function buildData(count) {
+global.buildData = function buildData(count) {
     const data = new Array(count);
     for (let i = 0; i < count; i++) {
         data[i] = {
@@ -87,7 +88,7 @@ const SimpleProxyHandler = {
     },
 };
 
-function buildSimpleProxyData(count) {
+global.buildSimpleProxyData = function buildSimpleProxyData(count) {
     const data = new Array(count);
 
     for (let i = 0; i < count; i++) {
@@ -108,10 +109,10 @@ function buildSimpleProxyData(count) {
     return new Proxy(data, SimpleProxyHandler);
 }
 
-const observableMembrane = new ObservableMembrane();
-const fastMembrane = new FastMembrane();
+global.observableMembrane = new ObservableMembrane();
+global.fastMembrane = new FastMembrane();
 
-function run(data) {
+global.run = function run(data) {
     let sum = 0;
     for (let i = 0; i < data.length; i++) {
         const entry = data[i];
@@ -122,92 +123,51 @@ function run(data) {
     return sum;
 }
 
-let before, after, data, proxy;
-
-
-// ================================================================================================
-data = [];
-for (let i = 0; i < 100; i++) {
-    data[i] = buildData(10000);
-}
-
-before = Date.now();
-for (let i = 0; i < 100; i++) {
-    run(data[i]);
-}
-after = Date.now();
-console.log(`Standard Javascript object (different): ${after - before}`);
-
-
-before = Date.now();
-for (let i = 0; i < 100; i++) {
-    run(data[0]);
-}
-after = Date.now();
-console.log(`Standard Javascript object (same): ${after - before}`);
-
-// ================================================================================================
-data = [];
-for (let i = 0; i < 100; i++) {
-    data[i] = buildSimpleProxyData(10000);
-}
-
-before = Date.now();
-for (let i = 0; i < 100; i++) {
-    run(data[i]);
-}
-after = Date.now();
-console.log(`Simple proxy (different): ${after - before}`);
-
-before = Date.now();
-for (let i = 0; i < 100; i++) {
-    run(data[0]);
-}
-after = Date.now();
-console.log(`Simple proxy (same): ${after - before}`);
-
-// ================================================================================================
-data = [];
-for (let i = 0; i < 100; i++) {
-    data[i] = buildData(10000);
-}
-
-before = Date.now();
-for (let i = 0; i < 100; i++) {
-    proxy = fastMembrane.getProxy(data[i]);
-    run(proxy);
-}
-after = Date.now();
-console.log(`Fast membrane (different): ${after - before}`);
-
-
-before = Date.now();
-for (let i = 0; i < 100; i++) {
-    proxy = fastMembrane.getProxy(data[0]);
-    run(proxy);
-}
-after = Date.now();
-console.log(`Fast membrane (same): ${after - before}`);
-
-// ================================================================================================
-data = [];
-for (let i = 0; i < 100; i++) {
-    data[i] = buildData(10000);
-}
-
-before = Date.now();
-for (let i = 0; i < 100; i++) {
-    proxy = observableMembrane.getProxy(data[i]);
-    run(proxy);
-}
-after = Date.now();
-console.log(`Observable membrane (different): ${after - before}`);
-
-
-before = Date.now();
-for (let i = 0; i < 100; i++) {
-    proxy = observableMembrane.getProxy(data[0]);
-    run(proxy);
-}
-after = Date.now();
-console.log(`Observable membrane (same): ${after - before}`);
+const suite = new Benchmark.Suite();
+suite
+    .add('Objects', function() {
+        run(data.pop());
+    }, {
+        setup() {
+            let data = [];
+            for (let i = 0; i < this.count; i++) {
+                data[i] = buildData(10000);
+            }
+        }
+    })
+    .add('Simple proxy', function() {
+        run(data.pop());
+    }, {
+        setup() {
+            let data = [];
+            for (let i = 0; i < this.count; i++) {
+                data[i] = buildSimpleProxyData(10000);
+            }
+        }
+    })
+    .add('Fast membrane', function() {
+        proxy = fastMembrane.getProxy(data.pop());
+        run(proxy); 
+    }, {
+        setup() {
+            let data = [];
+            for (let i = 0; i < this.count; i++) {
+                data[i] = buildData(10000);
+            }
+        }
+    })
+    .add('Observable membrane', function() {
+        proxy = observableMembrane.getProxy(data.pop());
+        run(proxy); 
+    }, {
+        setup() {
+            let data = [];
+            for (let i = 0; i < this.count; i++) {
+                data[i] = buildData(10000);
+            }
+        }
+    })
+    .on('cycle', function(event) {
+        console.log(String(event.target));
+    })
+    .run({ async: true });
