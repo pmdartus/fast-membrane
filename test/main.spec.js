@@ -1,4 +1,4 @@
-const { default: Membrane } = require('./main');
+const { default: Membrane } = require('../src/main');
 
 describe('getProxy', () => {
     it('should wrap the original object into a proxy', () => {
@@ -7,7 +7,6 @@ describe('getProxy', () => {
         const original = {};
         const proxified = membrane.getProxy(original);
 
-        // Check if there is an identity discontinuity
         expect(original).not.toBe(proxified);
     });
 
@@ -80,5 +79,26 @@ describe('valueObserved', () => {
         expect(valueObserved).toHaveBeenCalledWith(outer, 'x');
         expect(valueObserved).toHaveBeenCalledWith(outer, 'y');
         expect(valueObserved).toHaveBeenCalledWith(inner, 'z');
+    });
+});
+
+describe('unwrapProxy', () => {
+    it('returns the original value passed to getProxy', () => {
+        const membrane = new Membrane();
+
+        const original = {};
+        const proxified = membrane.getProxy(original);
+
+        expect(membrane.unwrapProxy(proxified)).toBe(original);
+    });
+
+    it('returns the original value from a nested object', () => {
+        const membrane = new Membrane();
+
+        const inner = {};
+        const outer = { inner };
+        const proxified = membrane.getProxy(outer);
+
+        expect(membrane.unwrapProxy(proxified.inner)).toBe(inner);
     });
 });

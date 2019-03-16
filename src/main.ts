@@ -5,22 +5,34 @@ interface MembraneOptions {
     valueObserved?: MembraneCallback;
 }
 
-function isObservable(target: any): boolean {
+/**
+ * Private symbol used to retrieve the original value from ReactiveProxy.
+ * 
+ * Note: using a private communication channel via a Symbol, allows to avoid having maintain another
+ * WeakMap from ReactiveProxy<Object> to Object. It has the nice side effect to allocate less 
+ * memory and makes GC faster.
+ */
+const UNWRAP_SYMBOL = Symbol('unwrap');
+
+/**
+ * Returns true if the object is observable by the reactive membrane, otherwise return false.
+ */
+function isObservable(object: any): boolean {
     // intentionally checking for null
-    if (target === null) {
+    if (object === null) {
         return false;
     }
 
     // treat all non-object types, including undefined, as non-observable values
-    if (typeof target !== 'object') {
+    if (typeof object !== 'object') {
         return false;
     }
 
-    if (Array.isArray(target)) {
+    if (Array.isArray(object)) {
         return true;
     }
 
-    const proto = Object.getPrototypeOf(target);
+    const proto = Object.getPrototypeOf(object);
     return (
         proto === null ||
         proto === Object.prototype ||
@@ -48,6 +60,12 @@ class ReactiveProxy implements ProxyHandler<object> {
     }
 
     get(target: object, propertyKey: PropertyKey, receiver: any) {
+        // Return the target value if property the accessed property is the private unwrapped 
+        // symbol. 
+        if (propertyKey === UNWRAP_SYMBOL) {
+            return target;
+        }
+
         if (this.valueObserved !== null) {
             this.valueObserved(target, propertyKey);
         }
@@ -156,15 +174,15 @@ export default class Membrane {
         });
     }
 
-    getProxy(target: any): any {
-        return this.getProxyfiedValue(target);
+    getProxy(obj: object): object {
+        return this.getProxyfiedValue(obj);
     }
 
-    getReadOnlyProxy(target: any): any {
-        return this.getProxyfiedValue(target);
+    getReadOnlyProxy(obj: object): object {
+        return this.getProxyfiedValue(obj);
     }
 
-    unwrapProxy(target: any): any {
-        return target;
+    unwrapProxy(reactiveProxy: any): object | undefined {
+        return reactiveProxy[UNWRAP_SYMBOL];
     }
 }
