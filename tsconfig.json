@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "noUnusedLocals": true,
+
+        "declaration": true,
+        "sourceMap": true,
+
+        "module": "commonjs",
+        "esModuleInterop": true,
+
+        "target": "es2018",
+    }
+}
