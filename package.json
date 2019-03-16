@@ -1,14 +1,19 @@
 {
-  "name": "fast-observable-membrane",
+  "name": "fast-membrane",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
+    "test": "jest",
     "build": "rollup -c"
   },
   "devDependencies": {
+    "@types/jest": "^24.0.11",
+    "jest": "^24.5.0",
+    "observable-membrane": "^0.26.1",
     "rollup": "1.4.0",
     "rollup-plugin-typescript": "^1.0.0",
+    "ts-jest": "^24.0.0",
     "tslib": "^1.9.3",
     "typescript": "^3.3.3333"
   }

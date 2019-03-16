@@ -4,11 +4,11 @@ module.exports = {
     input: './src/main.ts',
     output: [
         {
-            file: './dist/fast-observable-membrane.js',
+            file: './dist/fast-membrane.js',
             format: 'cjs',
         },
         {
-            file: './dist/fast-observable-membrane.mjs',
+            file: './dist/fast-membrane.mjs',
             format: 'es',
         },
     ],
