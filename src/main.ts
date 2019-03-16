@@ -9,7 +9,7 @@ interface MembraneOptions {
  * Private symbol used to retrieve the original value from ReactiveProxy.
  * 
  * Note: using a private communication channel via a Symbol, allows to avoid having maintain another
- * WeakMap from ReactiveProxy<Object> to Object. It has the nice side effect to allocate less 
+ * WeakMap from ReactiveProxy to Object. It has the nice side effect to allocate less 
  * memory and makes GC faster.
  */
 const UNWRAP_SYMBOL = Symbol('unwrap');
@@ -18,16 +18,17 @@ const UNWRAP_SYMBOL = Symbol('unwrap');
  * Returns true if the object is observable by the reactive membrane, otherwise return false.
  */
 function isObservable(object: any): boolean {
-    // intentionally checking for null
+    // Intentionally checking for null.
     if (object === null) {
         return false;
     }
 
-    // treat all non-object types, including undefined, as non-observable values
+    // Treat all non-object types, including undefined, as non-observable values.
     if (typeof object !== 'object') {
         return false;
     }
 
+    // Early exit if the object is an Array.
     if (Array.isArray(object)) {
         return true;
     }
@@ -40,6 +41,7 @@ function isObservable(object: any): boolean {
     );
 }
 
+// TODO: Verify if Reflect is faster than direct properties access.
 class ReactiveProxy implements ProxyHandler<object> {
     private getProxyfiedValue: (target: object) => object;
     private valueMutated: null | MembraneCallback = null;
@@ -73,14 +75,39 @@ class ReactiveProxy implements ProxyHandler<object> {
         const value = Reflect.get(target, propertyKey, receiver);
         return this.getProxyfiedValue(value);
     }
+    getOwnPropertyDescriptor(target: object, propertyKey: PropertyKey) {
+        if (this.valueObserved !== null) {
+            this.valueObserved(target, propertyKey);
+        }
+
+        const descriptor = Reflect.getOwnPropertyDescriptor(target, propertyKey);
+        if (descriptor === undefined) {
+            return undefined;
+        }
+
+        const { value } = descriptor;
+        if (value !== undefined) {
+            descriptor.value = this.getProxyfiedValue(value);
+        } else {
+            const { get } = descriptor;
+            if (get !== undefined) {
+                descriptor.get = () => {
+                    return this.getProxyfiedValue(get.call(target));
+                }
+            }
+        }
+
+        return descriptor;
+    }
 
     set(
         target: object,
         propertyKey: PropertyKey,
         value: any,
-        receiver: any,
     ) {
-        const ret = Reflect.set(target, propertyKey, value, receiver);
+        // Don't pass the receiver otherwise otherwise it will invoke the ReactiveProxy 
+        // defineProperty hooks, and will invoke twice the value mutated
+        const ret = Reflect.set(target, propertyKey, value);
 
         if (this.valueMutated !== null) {
             this.valueMutated(target, propertyKey);
@@ -149,22 +176,29 @@ export default class Membrane {
             }
         }
 
-        const getProxyfiedValue = this.getProxyfiedValue = (target: object) => {
-            // There is no need to wrap the object if it is not observable
-            if (!isObservable(target)) {
-                return target;
+        const getProxyfiedValue = this.getProxyfiedValue = (obj: any) => {
+            // There is no need to wrap the object if it is not observable.
+            if (!isObservable(obj)) {
+                return obj;
+            }
+
+            // Check if the passed object is an existing ReactiveProxy. If it's the case then
+            // don't do anything, and return the existing object.
+            // TODO: Should it be part of the "isObservable" function?
+            if (obj[UNWRAP_SYMBOL] !== undefined) {
+                return obj;
             }
     
-            // Check if the object is already in the graph of known objects
-            let proxiedValue = this.objectGraph.get(target);
+            // Check if the object is already in the graph of known objects.
+            let proxyfiedValue = this.objectGraph.get(obj);
     
-            // If it's not the case wrap it, and add it to the graph
-            if (proxiedValue === undefined) {
-                proxiedValue = new Proxy(target, this.reactiveProxy);
-                this.objectGraph.set(target, proxiedValue);
+            // If it's not the case wrap it, and add it to the graph.
+            if (proxyfiedValue === undefined) {
+                proxyfiedValue = new Proxy(obj, this.reactiveProxy);
+                this.objectGraph.set(obj, proxyfiedValue as any);
             }
     
-            return proxiedValue;
+            return proxyfiedValue;
         };
 
         this.reactiveProxy = new ReactiveProxy({

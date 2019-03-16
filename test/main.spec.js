@@ -20,6 +20,35 @@ describe('getProxy', () => {
         expect(proxified1).toBe(proxified2);
     });
 
+    it('should not rewrap an existing ReactiveProxy', () => {
+        const membrane = new Membrane();
+
+        const original = {};
+        const proxified1 = membrane.getProxy(original);
+        const proxified2 = membrane.getProxy(proxified1);
+
+        expect(proxified1).toBe(proxified2);
+    });
+
+    it('should handle frozen object', () => {
+        const membrane = new Membrane();
+
+        const original = Object.freeze({ x: 1 });
+        const proxified = membrane.getProxy(original);
+
+        expect(proxified.x).toBe(1);
+    });
+
+    it('should handle freezing reactive proxy', () => {
+        const membrane = new Membrane();
+
+        const original = { x: 1 };
+        const proxified = membrane.getProxy(original);
+        Object.freeze(proxified);
+
+        expect(proxified.x).toBe(1);
+    });
+
     it('should handle circular object reference', () => {
         const membrane = new Membrane();
 
@@ -42,27 +71,27 @@ describe('valueObserved', () => {
         const membrane = new Membrane({
             valueObserved,
         });
-    
+
         const original = {
             x: 1,
             y: 2,
         };
         const proxified = membrane.getProxy(original);
-    
+
         proxified.x;
         proxified.y;
-    
+
         expect(valueObserved).toHaveBeenCalledTimes(2);
         expect(valueObserved).toHaveBeenCalledWith(original, 'x');
         expect(valueObserved).toHaveBeenCalledWith(original, 'y');
     });
-    
+
     it('it should notify when accessed nested object properties', () => {
         let valueObserved = jest.fn();
         const membrane = new Membrane({
             valueObserved,
         });
-    
+
         const inner = {
             z: 2,
         };
@@ -71,10 +100,10 @@ describe('valueObserved', () => {
             y: inner,
         };
         const proxified = membrane.getProxy(outer);
-    
+
         proxified.x;
         proxified.y.z;
-    
+
         expect(valueObserved).toHaveBeenCalledTimes(3);
         expect(valueObserved).toHaveBeenCalledWith(outer, 'x');
         expect(valueObserved).toHaveBeenCalledWith(outer, 'y');
