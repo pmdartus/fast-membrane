@@ -46,8 +46,8 @@ function isObservable(object: any): boolean {
     return Object.isFrozen(object) === false;
 }
 
-// TODO: Verify if Reflect is faster than direct properties access.
-class ReactiveProxy implements ProxyHandler<object> {
+// Note: Direct object manipulation is always faster and usage of Reflect APIs.
+class ReactiveProxy implements ProxyHandler<any> {
     private getProxyfiedValue: (target: object) => object;
     private valueMutated: null | MembraneCallback = null;
     private valueObserved: null | MembraneCallback = null;
@@ -66,7 +66,7 @@ class ReactiveProxy implements ProxyHandler<object> {
         this.valueObserved = valueObserved;
     }
 
-    get(target: object, propertyKey: PropertyKey, receiver: any) {
+    get(target: any, propertyKey: PropertyKey, receiver: any) {
         // Return the target value if property the accessed property is the private unwrapped
         // symbol.
         if (propertyKey === UNWRAP_SYMBOL) {
@@ -82,7 +82,7 @@ class ReactiveProxy implements ProxyHandler<object> {
         if (process.env.NODE_ENV !== 'production') {
             // One of the Proxy invariant is that the get trap should return the property value on
             // non-writable and non-configurable properties.
-            const descriptor = Reflect.getOwnPropertyDescriptor(
+            const descriptor = Object.getOwnPropertyDescriptor(
                 target,
                 propertyKey,
             );
@@ -98,15 +98,15 @@ class ReactiveProxy implements ProxyHandler<object> {
             }
         }
 
-        const value = Reflect.get(target, propertyKey, receiver);
+        const value = target[propertyKey];
         return this.getProxyfiedValue(value);
     }
-    getOwnPropertyDescriptor(target: object, propertyKey: PropertyKey) {
+    getOwnPropertyDescriptor(target: any, propertyKey: PropertyKey) {
         if (this.valueObserved !== null) {
             this.valueObserved(target, propertyKey);
         }
 
-        const descriptor = Reflect.getOwnPropertyDescriptor(
+        const descriptor = Object.getOwnPropertyDescriptor(
             target,
             propertyKey,
         );
@@ -139,17 +139,18 @@ class ReactiveProxy implements ProxyHandler<object> {
         // Return true to indicate that the assignment was successful.
         return true;
     }
-    deleteProperty(target: object, propertyKey: PropertyKey) {
-        const ret = Reflect.deleteProperty(target, propertyKey);
+    deleteProperty(target: any, propertyKey: PropertyKey) {
+        delete target[propertyKey];
 
         if (this.valueMutated !== null) {
             this.valueMutated(target, propertyKey);
         }
 
-        return ret;
+        // Return true to indicate that the deletion was successful.
+        return true;
     }
-    has(target: object, propertyKey: PropertyKey) {
-        const ret = Reflect.has(target, propertyKey);
+    has(target: any, propertyKey: PropertyKey) {
+        const ret = propertyKey in target;
 
         if (this.valueMutated !== null) {
             this.valueMutated(target, propertyKey);
@@ -158,11 +159,11 @@ class ReactiveProxy implements ProxyHandler<object> {
         return ret;
     }
     defineProperty(
-        target: object,
+        target: any,
         propertyKey: PropertyKey,
         descriptor: PropertyDescriptor,
     ) {
-        const ret = Reflect.defineProperty(target, propertyKey, descriptor);
+        const ret = Object.defineProperty(target, propertyKey, descriptor);
 
         if (this.valueMutated !== null) {
             this.valueMutated(target, propertyKey);
