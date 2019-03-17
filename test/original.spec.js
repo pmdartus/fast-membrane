@@ -139,7 +139,7 @@ describe('ReactiveHandler', () => {
         });
         expect(property.hello).toBe('world');
     });
-    fit('should assign correct value on original object with defineProperty correctly', function() {
+    it('should assign correct value on original object with defineProperty correctly', function() {
         const target = new ReactiveMembrane();
         const other = {};
         const obj = {
@@ -151,7 +151,6 @@ describe('ReactiveHandler', () => {
         Object.defineProperty(reactive, 'nonreactive', {
             value: reactive.other
         });
-        debugger;
         expect(obj.nonreactive).toBe(obj.other);
     });
     it('should handle defineProperty correctly with undefined non-configurable descriptor', function() {

@@ -29,16 +29,22 @@ function isObservable(object: any): boolean {
     }
 
     // Early exit if the object is an Array.
-    if (Array.isArray(object)) {
+    if (Array.isArray(object) === true) {
         return true;
     }
 
     const proto = Object.getPrototypeOf(object);
-    return (
+    const isPlainObject = (
         proto === null ||
         proto === Object.prototype ||
         Object.getPrototypeOf(proto) === null
     );
+    if (isPlainObject === false) {
+        return false;
+    }
+
+    // Frozen objects are not observable, because they can't be mutated by nature.
+    return Object.isFrozen(object) === false;
 }
 
 // TODO: Verify if Reflect is faster than direct properties access.
@@ -72,8 +78,19 @@ class ReactiveProxy implements ProxyHandler<object> {
             this.valueObserved(target, propertyKey);
         }
 
+        // TODO: Evaluate if the get trap can be optimized by using the descriptor directly instead
+        // of using the value and descriptor to return the value.
         const value = Reflect.get(target, propertyKey, receiver);
-        return this.getProxyfiedValue(value);
+        const descriptor = Reflect.getOwnPropertyDescriptor(target, propertyKey);
+
+        // One of the Proxy invariant is that the get trap should return the property value on 
+        // non-writable and non-configurable properties. Returning the original value make 
+        // sense 
+        if (descriptor && descriptor.writable === false && descriptor.configurable === false) {
+            return value;
+        } else {
+            return this.getProxyfiedValue(value);
+        }
     }
     getOwnPropertyDescriptor(target: object, propertyKey: PropertyKey) {
         if (this.valueObserved !== null) {
@@ -152,7 +169,13 @@ class ReactiveProxy implements ProxyHandler<object> {
     }
 
     setPrototypeOf() {
-        // Don't have the right to change reactive object prototype
+        // Mutating the prototype of ReactiveProxy is not allowed since it can lead to unpredictable
+        // behavior.
+        return false;
+    }
+    preventExtensions() {
+        // Invoking Object.seal, Object.preventExtension, Object.freeze on a reactive object should
+        // be prevented to avoid trying to observe an object that is not considered observable.
         return false;
     }
 };

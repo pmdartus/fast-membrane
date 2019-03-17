@@ -1,5 +1,79 @@
 const { default: Membrane } = require('../src/main');
 
+function testNotObservable(type, object) {
+    it(`should not try to observe ${type}`, () => {
+        const membrane = new Membrane();
+        expect(membrane.getProxy(object)).toBe(object);
+    });
+}
+
+function testIsObservable(type, object) {
+    it(`should observe ${type}`, () => {
+        const membrane = new Membrane();
+        expect(membrane.getProxy(object)).not.toBe(object);
+    });
+}
+
+describe('Observability', () => {
+    // Primitives
+    testNotObservable('undefined', undefined);
+    testNotObservable('null', null);
+    testNotObservable('boolean', true);
+    testNotObservable('number', 1);
+    testNotObservable('string', 'test');
+
+    // Known objects
+    testNotObservable('symbol', Symbol('test'));
+    testNotObservable('function', function() {});
+    testNotObservable('date', new Date());
+    testNotObservable('map', new Map());
+    testNotObservable('set', new Set());
+
+    // Complex objects
+    testNotObservable('non standard object', Object.create({}));
+    testNotObservable('frozen objects', Object.freeze({}));
+    testNotObservable('non extensible objects', Object.preventExtensions({}));
+    testNotObservable('sealed objects', Object.seal({}));
+
+    testIsObservable('plain objects', {});
+    testIsObservable('objects with no prototype', Object.create(null));
+});
+
+function testComplexDescriptorAccess(propertyType, propertyDescriptor) {
+    it(`should not throw when accessing a property ${propertyType}`, () => {
+        const membrane = new Membrane();
+
+        const original = {};
+        const target = {};
+        Object.defineProperty(original, 'target', {
+            value: target,
+            ...propertyDescriptor,
+        });
+
+        const proxified = membrane.getProxy(original);
+        expect(() => {
+            proxified.target;
+        }).not.toThrow();
+    });
+}
+
+describe('Complex properties access', () => {
+    testComplexDescriptorAccess('non-writable', {
+        writable: false,
+        configurable: true,
+    });
+
+    testComplexDescriptorAccess('non-configurable', {
+        writable: true,
+        configurable: false,
+    });
+
+    testComplexDescriptorAccess('non-configurable and non-writable', {
+        writable: false,
+        configurable: false,
+    });
+});
+
 describe('getProxy', () => {
     it('should wrap the original object into a proxy', () => {
         const membrane = new Membrane();
@@ -28,25 +102,6 @@ describe('getProxy', () => {
         const proxified2 = membrane.getProxy(proxified1);
 
         expect(proxified1).toBe(proxified2);
-    });
-
-    it('should handle frozen object', () => {
-        const membrane = new Membrane();
-
-        const original = Object.freeze({ x: 1 });
-        const proxified = membrane.getProxy(original);
-
-        expect(proxified.x).toBe(1);
-    });
-
-    it('should handle freezing reactive proxy', () => {
-        const membrane = new Membrane();
-
-        const original = { x: 1 };
-        const proxified = membrane.getProxy(original);
-        Object.freeze(proxified);
-
-        expect(proxified.x).toBe(1);
     });
 
     it('should handle circular object reference', () => {
