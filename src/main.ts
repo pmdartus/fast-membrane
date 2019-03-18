@@ -8,8 +8,8 @@ import {
 import { MembraneOptions, MembraneCallback } from './types';
 
 export default class Membrane {
-    private reactiveProxy: ReactiveProxy;
-    private getProxyfiedValue: (target: object) => object;
+    private readonly reactiveProxy: ReactiveProxy;
+    private readonly getProxyfiedValue: <T>(target: T) => T;
 
     constructor(options?: MembraneOptions) {
         let valueMutated: null | MembraneCallback = null;
@@ -50,15 +50,15 @@ export default class Membrane {
         });
     }
 
-    getProxy(obj: object): object {
+    getProxy<T extends object>(obj: T): T {
         return this.getProxyfiedValue(obj);
     }
 
-    getReadOnlyProxy(obj: object): object {
+    getReadOnlyProxy<T extends object>(obj: T): T {
         return this.getProxyfiedValue(obj);
     }
 
-    unwrapProxy(reactiveProxy: any): object | undefined {
+    unwrapProxy<T extends any>(reactiveProxy: T): T | undefined {
         return reactiveProxy[REACTIVE_PROXY_TO_OBJECT];
     }
 }
