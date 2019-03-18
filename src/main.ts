@@ -1,18 +1,14 @@
+import {
+    OBJECT_TO_REACTIVE_PROXY,
+    REACTIVE_PROXY_TO_OBJECT,
+} from './known-symbols';
+
 type MembraneCallback = (target: object, propertyKey: PropertyKey) => void;
 
 interface MembraneOptions {
     valueMutated?: MembraneCallback;
     valueObserved?: MembraneCallback;
 }
-
-/**
- * Private symbol used to retrieve the original value from ReactiveProxy.
- *
- * Note: using a private communication channel via a Symbol, allows to avoid having maintain another
- * WeakMap from ReactiveProxy to Object. It has the nice side effect to allocate less
- * memory and makes GC faster.
- */
-const UNWRAP_SYMBOL = Symbol('unwrap');
 
 /**
  * Returns true if the object is observable by the reactive membrane, otherwise return false.
@@ -69,7 +65,7 @@ class ReactiveProxy implements ProxyHandler<any> {
     get(target: any, propertyKey: PropertyKey, receiver: any) {
         // Return the target value if property the accessed property is the private unwrapped
         // symbol.
-        if (propertyKey === UNWRAP_SYMBOL) {
+        if (propertyKey === REACTIVE_PROXY_TO_OBJECT) {
             return target;
         }
 
@@ -186,7 +182,6 @@ class ReactiveProxy implements ProxyHandler<any> {
 
 export default class Membrane {
     private reactiveProxy: ReactiveProxy;
-    private objectGraph: WeakMap<object, object> = new WeakMap();
     private getProxyfiedValue: (target: object) => object;
 
     constructor(options?: MembraneOptions) {
@@ -212,17 +207,15 @@ export default class Membrane {
             // Check if the passed object is an existing ReactiveProxy. If it's the case then
             // don't do anything, and return the existing object.
             // TODO: Should it be part of the "isObservable" function?
-            if (obj[UNWRAP_SYMBOL] !== undefined) {
+            if (obj[REACTIVE_PROXY_TO_OBJECT] !== undefined) {
                 return obj;
             }
 
-            // Check if the object is already in the graph of known objects.
-            let proxyfiedValue = this.objectGraph.get(obj);
-
-            // If it's not the case wrap it, and add it to the graph.
+            // Let's create a new Reactive Proxy is the object doesn't one associated with.
+            let proxyfiedValue = obj[OBJECT_TO_REACTIVE_PROXY];
             if (proxyfiedValue === undefined) {
                 proxyfiedValue = new Proxy(obj, this.reactiveProxy);
-                this.objectGraph.set(obj, proxyfiedValue as any);
+                obj[OBJECT_TO_REACTIVE_PROXY] = proxyfiedValue;
             }
 
             return proxyfiedValue;
@@ -244,6 +237,6 @@ export default class Membrane {
     }
 
     unwrapProxy(reactiveProxy: any): object | undefined {
-        return reactiveProxy[UNWRAP_SYMBOL];
+        return reactiveProxy[REACTIVE_PROXY_TO_OBJECT];
     }
 }
