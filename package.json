@@ -6,7 +6,9 @@
   "license": "MIT",
   "scripts": {
     "test": "jest",
-    "build": "rollup -c"
+    "prebuild": "tsc --noEmit",
+    "build": "rollup -c",
+    "performance": "node performance/index.js"
   },
   "devDependencies": {
     "@types/jest": "^24.0.11",

@@ -1,4 +1,4 @@
-const Benchmark = require('benchmark');
+const { Suite } = require('benchmark');
 
 const ObservableMembrane = require('observable-membrane/dist/umd/observable-membrane.min.js');
 const FastMembrane = require('../dist/umd/fast-membrane.min.js');
@@ -57,10 +57,9 @@ global.SimpleProxyHandler = {
 global.observableMembrane = new ObservableMembrane();
 global.fastMembrane = new FastMembrane();
 
-const suite = new Benchmark.Suite();
-suite
+module.exports = new Suite('Object set')
     .add(
-        'Objects',
+        'Plain object',
         function() {
             const data = new Array(10000);
 
@@ -117,11 +116,4 @@ suite
                 item.className = C[random(C.length)];
             }
         },
-    )
-    .on('cycle', function(event) {
-        console.log(String(event.target));
-    })
-    .on('error', function(error) {
-        console.error(error);
-    })
-    .run({ async: true });
+    );

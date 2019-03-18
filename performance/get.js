@@ -1,4 +1,4 @@
-const Benchmark = require('benchmark');
+const { Suite } = require('benchmark');
 
 const ObservableMembrane = require('observable-membrane/dist/umd/observable-membrane.min.js');
 const FastMembrane = require('../dist/umd/fast-membrane.min.js');
@@ -122,9 +122,8 @@ global.run = function run(data) {
     return sum;
 }
 
-const suite = new Benchmark.Suite();
-suite
-    .add('Objects', function() {
+module.exports = new Suite('Object get')
+    .add('Plain object', function() {
         run(data.pop());
     }, {
         setup() {
@@ -165,11 +164,4 @@ suite
                 data[i] = buildData(10000);
             }
         }
-    })
-    .on('cycle', function(event) {
-        console.log(String(event.target));
-    })
-    .on('error', function (error) {
-        console.error(error);
-    })
-    .run({ async: true });
+    });
