@@ -6,41 +6,49 @@ const typescript = require('rollup-plugin-typescript');
 
 const name = 'FastMembrane';
 
+function rollupConfig({ membraneType }) {
+    const input = `./src/${membraneType}/main.ts`;
+    return [
+        {
+            input,
+            output: [
+                {
+                    file: `./dist/commonjs/${membraneType}/fast-membrane.js`,
+                    format: 'cjs',
+                },
+                {
+                    file: `./dist/modules/${membraneType}/fast-membrane.mjs`,
+                    format: 'es',
+                },
+                {
+                    file: `./dist/umd/${membraneType}/fast-membrane.js`,
+                    format: 'umd',
+                    name,
+                },
+            ],
+            plugins: [typescript()],
+        },
+        {
+            input,
+            output: [
+                {
+                    file: `./dist/umd/${membraneType}/fast-membrane.min.js`,
+                    format: 'umd',
+                    name,
+                },
+            ],
+            plugins: [
+                typescript(),
+                replace({
+                    'process.env.NODE_ENV': JSON.stringify('production'),
+                }),
+                terser(),
+            ],
+        },
+    ]
+}
+
 module.exports = [
-    {
-        input: './src/main.ts',
-        output: [
-            {
-                file: './dist/commonjs/fast-membrane.js',
-                format: 'cjs',
-            },
-            {
-                file: './dist/modules/fast-membrane.mjs',
-                format: 'es',
-            },
-            {
-                file: './dist/umd/fast-membrane.js',
-                format: 'umd',
-                name,
-            },
-        ],
-        plugins: [typescript()],
-    },
-    {
-        input: './src/main.ts',
-        output: [
-            {
-                file: './dist/umd/fast-membrane.min.js',
-                format: 'umd',
-                name,
-            },
-        ],
-        plugins: [
-            typescript(),
-            replace({
-                'process.env.NODE_ENV': JSON.stringify('production'),
-            }),
-            terser(),
-        ],
-    },
+    ...rollupConfig({ membraneType: 'symbol' }),
+    ...rollupConfig({ membraneType: 'weakmap' }),
 ];

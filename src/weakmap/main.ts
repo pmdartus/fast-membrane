@@ -1,15 +1,13 @@
 import ReactiveProxy from './reactive-proxy';
 import { isObservable } from './observability';
-import {
-    OBJECT_TO_REACTIVE_PROXY,
-    REACTIVE_PROXY_TO_OBJECT,
-} from './known-symbols';
 
-import { MembraneOptions, MembraneCallback } from './types';
+import { Membrane, MembraneOptions, MembraneCallback } from '../types';
 
-export default class Membrane {
+export default class WeakMapMembrane implements Membrane {
     private readonly reactiveProxy: ReactiveProxy;
     private readonly getProxyfiedValue: <T>(target: T) => T;
+    private objectToReactiveProxy: WeakMap<any, any> = new WeakMap();
+    private reactiveProxyToObject: WeakMap<any, any> = new WeakMap();
 
     constructor(options?: MembraneOptions) {
         let valueMutated: null | MembraneCallback = null;
@@ -31,13 +29,15 @@ export default class Membrane {
                 return object;
             }
 
-            // Extract the ReactiveProxy out of the passed object
-            let proxyfiedValue = object[OBJECT_TO_REACTIVE_PROXY];
+            // Get the associated Reactive Proxy for the object.
+            let proxyfiedValue = this.objectToReactiveProxy.get(object);
 
             // Let's create a new Reactive Proxy is the object doesn't one associated with.
             if (proxyfiedValue === undefined) {
                 proxyfiedValue = new Proxy(object, this.reactiveProxy);
-                object[OBJECT_TO_REACTIVE_PROXY] = proxyfiedValue;
+
+                this.objectToReactiveProxy.set(object, proxyfiedValue);
+                this.reactiveProxyToObject.set(proxyfiedValue, object);
             }
 
             return proxyfiedValue;
@@ -51,6 +51,11 @@ export default class Membrane {
     }
 
     getProxy<T extends object>(obj: T): T {
+        // If the object is already a reactive proxy return it.
+        if (this.reactiveProxyToObject.has(obj)) {
+            return obj;
+        }
+
         return this.getProxyfiedValue(obj);
     }
 
@@ -58,7 +63,8 @@ export default class Membrane {
         return this.getProxyfiedValue(obj);
     }
 
-    unwrapProxy<T extends any>(reactiveProxy: T): T | undefined {
-        return reactiveProxy[REACTIVE_PROXY_TO_OBJECT];
+    unwrapProxy<T extends any>(obj: T): T {
+        const unwrappedObj  = this.reactiveProxyToObject.get(obj);
+        return unwrappedObj !== undefined ? unwrappedObj : obj;
     }
 }

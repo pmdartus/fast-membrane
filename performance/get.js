@@ -1,7 +1,8 @@
 const { Suite } = require('benchmark');
 
 const ObservableMembrane = require('observable-membrane/dist/umd/observable-membrane.min.js');
-const FastMembrane = require('../dist/umd/fast-membrane.min.js');
+const SymbolMembrane = require('../dist/umd/symbol/fast-membrane.min.js');
+const WeakMapMembrane = require('../dist/umd/weakmap/fast-membrane.min.js');
 
 function random(max) {
     return Math.round(Math.random() * 1000) % max;
@@ -109,7 +110,8 @@ global.buildSimpleProxyData = function buildSimpleProxyData(count) {
 }
 
 global.observableMembrane = new ObservableMembrane();
-global.fastMembrane = new FastMembrane();
+global.symbolMembrane = new SymbolMembrane();
+global.weakmapMembrane = new WeakMapMembrane();
 
 global.run = function run(data) {
     let sum = 0;
@@ -143,8 +145,19 @@ module.exports = new Suite('Object get')
             }
         }
     })
-    .add('Fast membrane', function() {
-        proxy = fastMembrane.getProxy(data.pop());
+    .add('Fast membrane (Symbol)', function() {
+        proxy = symbolMembrane.getProxy(data.pop());
+        run(proxy); 
+    }, {
+        setup() {
+            let data = [];
+            for (let i = 0; i < this.count; i++) {
+                data[i] = buildData(10000);
+            }
+        }
+    })
+    .add('Fast membrane (WeakMap)', function() {
+        proxy = weakmapMembrane.getProxy(data.pop());
         run(proxy); 
     }, {
         setup() {

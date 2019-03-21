@@ -1,5 +1,4 @@
-import { REACTIVE_PROXY_TO_OBJECT } from './known-symbols';
-import { MembraneCallback } from './types';
+import { MembraneCallback } from '../types';
 
 export default class ReactiveProxy implements ProxyHandler<object> {
     private getProxyfiedValue: <T extends object>(target: T) => T;
@@ -21,12 +20,6 @@ export default class ReactiveProxy implements ProxyHandler<object> {
     }
 
     get(target: any, propertyKey: PropertyKey) {
-        // Return the target value if property the accessed property is the private unwrapped
-        // symbol.
-        if (propertyKey === REACTIVE_PROXY_TO_OBJECT) {
-            return target;
-        }
-
         if (this.valueObserved !== null) {
             this.valueObserved(target, propertyKey);
         }

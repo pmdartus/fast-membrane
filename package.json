@@ -1,8 +1,8 @@
 {
   "name": "fast-membrane",
   "version": "1.0.0",
-  "main": "dist/commonjs/fast-membrane.js",
-  "module": "dist/modules/fast-membrane.mjs",
+  "main": "dist/commonjs/symbol/fast-membrane.js",
+  "module": "dist/modules/symbol/fast-membrane.mjs",
   "license": "MIT",
   "scripts": {
     "test": "jest",
