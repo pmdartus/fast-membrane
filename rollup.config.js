@@ -51,4 +51,17 @@ function rollupConfig({ membraneType }) {
 module.exports = [
     ...rollupConfig({ membraneType: 'symbol' }),
     ...rollupConfig({ membraneType: 'weakmap' }),
+    {
+        input: './performance/standalone-get.js',
+        output: {
+            file: './dist/performance/standalone-get.js',
+            format: 'es'
+        },
+        plugins: [
+            typescript(),
+            replace({
+                'process.env.NODE_ENV': JSON.stringify('production'),
+            }),
+        ],
+    }
 ];
