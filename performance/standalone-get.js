@@ -23,7 +23,7 @@ const COUNT = 1000;
 const symbolMembrane = new SymbolMembrane();
 const weakmapMembrane = new WeakMapMembrane();
 
-const data = []
+const data = [];
 const simpleProxyData = new Proxy([], SimpleProxyHandler);
 
 for (let i = 0; i < COUNT; i++) {
@@ -45,28 +45,41 @@ for (let i = 0; i < COUNT; i++) {
     simpleProxyData.push(simpleProxyData);
 }
 
-console.time('plain object');
-for (let i = 0; i < COUNT; i++) {
-    run(data[i]);
-}
-console.timeEnd('plain object');
+const TESTS = [
+    function testPlainObject() {
+      for (let i = 0; i < COUNT; ++i) {
+        run(data[i]);
+      }
+    },
+    function testSimpleProxy() {
+      for (let i = 0; i < COUNT; i++) {
+        run(simpleProxyData[i]);
+      }
+    },
+    function testSymbolMembrane() {
+      for (let i = 0; i < COUNT; i++) {
+        const p = symbolMembrane.getProxy(data[i]);
+        run(p);
+      }
+    },
+    function testWeakmapMembrane() {
+      for (let i = 0; i < COUNT; i++) {
+        const p = weakmapMembrane.getProxy(data[i]);
+        run(p);
+      }
+    }
+];
 
-console.time('simple proxy');
-for (let i = 0; i < COUNT; i++) {
-    run(simpleProxyData[i]);;
+// Warmup.
+for (let i = 0; i < 3; ++i) {
+  console.log(`Warm up run ${i+1}/3...`);
+  TESTS.forEach(fn => fn());
 }
-console.timeEnd('simple proxy');
 
-console.time('symbol membrane');
-for (let i = 0; i < COUNT; i++) {
-    const p = symbolMembrane.getProxy(data[i]);
-    run(p);
-}
-console.timeEnd('symbol membrane');
-
-console.time('weakmap membrane');
-for (let i = 0; i < COUNT; i++) {
-    const p = weakmapMembrane.getProxy(data[i]);
-    run(p);
-}
-console.timeEnd('weakmap membrane');
+// Measure
+console.log('Running tests...');
+TESTS.forEach(fn => {
+  console.time(fn.name);
+  fn();
+  console.timeEnd(fn.name);
+});

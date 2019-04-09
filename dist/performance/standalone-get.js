@@ -9,7 +9,6 @@ const OBJECT_TO_REACTIVE_PROXY = Symbol('object_to_reactive-proxy');
  * WeakMap from Reactive Proxy to Object. It has the nice side effect to be memory efficient.
  */
 const REACTIVE_PROXY_TO_OBJECT = Symbol('reactive-proxy_to_object');
-//# sourceMappingURL=known-symbols.js.map
 
 class ReactiveProxy {
     constructor({ getProxyfiedValue, valueMutated, valueObserved, }) {
@@ -94,7 +93,6 @@ class ReactiveProxy {
         return false;
     }
 }
-//# sourceMappingURL=reactive-proxy.js.map
 
 const { isArray } = Array;
 const { getPrototypeOf, isFrozen, prototype: ObjectPrototype } = Object;
@@ -129,7 +127,6 @@ function isObservable(object) {
     // Frozen objects are not observable, because they can't be mutated by nature.
     return isFrozen(object) === false;
 }
-//# sourceMappingURL=observability.js.map
 
 class SymbolMembrane {
     constructor(options) {
@@ -175,7 +172,6 @@ class SymbolMembrane {
         return unwrappedObj !== undefined ? unwrappedObj : obj;
     }
 }
-//# sourceMappingURL=main.js.map
 
 class ReactiveProxy$1 {
     constructor({ getProxyfiedValue, valueMutated, valueObserved, }) {
@@ -255,7 +251,6 @@ class ReactiveProxy$1 {
         return false;
     }
 }
-//# sourceMappingURL=reactive-proxy.js.map
 
 const { isArray: isArray$1 } = Array;
 const { getPrototypeOf: getPrototypeOf$1, isFrozen: isFrozen$1, prototype: ObjectPrototype$1 } = Object;
@@ -285,7 +280,6 @@ function isObservable$1(object) {
     // Frozen objects are not observable, because they can't be mutated by nature.
     return isFrozen$1(object) === false;
 }
-//# sourceMappingURL=observability.js.map
 
 class WeakMapMembrane {
     constructor(options) {
@@ -337,7 +331,6 @@ class WeakMapMembrane {
         return unwrappedObj !== undefined ? unwrappedObj : obj;
     }
 }
-//# sourceMappingURL=main.js.map
 
 function run(data) {
     let sum = 0;
@@ -383,27 +376,41 @@ for (let i = 0; i < COUNT; i++) {
     simpleProxyData.push(simpleProxyData);
 }
 
-console.time('plain object');
-for (let i = 0; i < COUNT; i++) {
-    run(data[i]);
-}
-console.timeEnd('plain object');
+const TESTS = [
+    function testPlainObject() {
+      for (let i = 0; i < COUNT; ++i) {
+        run(data[i]);
+      }
+    },
+    function testSimpleProxy() {
+      for (let i = 0; i < COUNT; i++) {
+        run(simpleProxyData[i]);
+      }
+    },
+    function testSymbolMembrane() {
+      for (let i = 0; i < COUNT; i++) {
+        const p = symbolMembrane.getProxy(data[i]);
+        run(p);
+      }
+    },
+    function testWeakmapMembrane() {
+      for (let i = 0; i < COUNT; i++) {
+        const p = weakmapMembrane.getProxy(data[i]);
+        run(p);
+      }
+    }
+];
 
-console.time('simple proxy');
-for (let i = 0; i < COUNT; i++) {
-    run(simpleProxyData[i]);}
-console.timeEnd('simple proxy');
-
-console.time('symbol membrane');
-for (let i = 0; i < COUNT; i++) {
-    const p = symbolMembrane.getProxy(data[i]);
-    run(p);
+// Warmup.
+for (let i = 0; i < 3; ++i) {
+  console.log(`Warm up run ${i+1}/3...`);
+  TESTS.forEach(fn => fn());
 }
-console.timeEnd('symbol membrane');
 
-console.time('weakmap membrane');
-for (let i = 0; i < COUNT; i++) {
-    const p = weakmapMembrane.getProxy(data[i]);
-    run(p);
-}
-console.timeEnd('weakmap membrane');
+// Measure
+console.log('Running tests...');
+TESTS.forEach(fn => {
+  console.time(fn.name);
+  fn();
+  console.timeEnd(fn.name);
+});

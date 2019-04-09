@@ -36,20 +36,11 @@ y.z = 3; // mutated | z
 This repository contains 2 different implementations of the Membrane one using `Symbol`s and another one using `WeakMap`s to keep track of the mapping between the Object and Reactive Proxy.
 
 ```sh
-$ node performance/index.js
-== Object get ==
-Object get - Plain object x 458 ops/sec ±5.67% (18 runs sampled)
-Object get - Simple proxy x 121 ops/sec ±3.47% (46 runs sampled)
-Object get - Fast membrane (Symbol) x 146 ops/sec ±2.80% (48 runs sampled)
-Object get - Fast membrane (WeakMap) x 75.41 ops/sec ±11.85% (36 runs sampled)
-Object get - Observable membrane x 31.11 ops/sec ±8.60% (40 runs sampled)
-
-== Object set ==
-Object set - Plain object x 1,764 ops/sec ±0.54% (89 runs sampled)
-Object set - Simple proxy x 159 ops/sec ±1.16% (77 runs sampled)
-Object set - Fast membrane (Symbol) x 129 ops/sec ±0.51% (78 runs sampled)
-Object set - Fast membrane (Weakmap) x 65.19 ops/sec ±8.11% (55 runs sampled)
-Object set - Observable membrane x 28.13 ops/sec ±9.16% (46 runs sampled)
+$ node dist/performance/standalone-get.js
+testPlainObject: 72.088ms
+testSimpleProxy: 545.140ms
+testSymbolMembrane: 499.900ms
+testWeakmapMembrane: 855.060ms
 ```
 
 ## Implementation Notes
